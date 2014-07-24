@@ -1,0 +1,30 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link rel="stylesheet" href="../css/popup.css" type="text/css">
+        <script src='../lib/jquery1.8.3/jquery.min.js'></script>
+        <script src='../js/popup.js'></script>
+    </head>
+    <body>
+        <div id="popup_sizer">
+            <!-- For some reason the extension popup isn't resizing to the form contents, so this hidden div is used for sizing-->
+            aaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        </div>
+        <div id ="debug_menu">
+        <form>
+            <br />
+            <label><input type="checkbox" class="setting" id="enable_plugin"><b>Enable Leap Detection</b></label><br />
+            <label><input type="checkbox" class="setting" id="node_detection">Use Node Detection Server</label><br />
+            <label><input type="checkbox" class="setting" id="windowInfo">Show Window Info</label><br />
+            <label><input type="checkbox" class="setting" id="pointsTable">Show Points Table</label><br />
+            <label><input type="checkbox" class="setting" id="json">Show JSON Output</label><br />
+        </form>
+        </div>            
+    </body>
+</html>

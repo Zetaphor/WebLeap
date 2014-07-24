@@ -1,0 +1,12 @@
+Predefined gestures that are assigned to actions by the user
+	- User sets circle gesture to open new tab
+	- Possible segregation of certain gestures for browser use, and others for developer use
+	- Provide developers with a set of predefined gesture templates. Also allow them to load gesture templates from an external file
+	- When you start a gesture, the element the mainPointable is colliding with is set as the target element
+	- Target elements are wrapped with a wblp tag, who's attributes define the gestures to react to
+		- gesture="X"
+		- speed/time="Xms"
+		- custom_gesture="dir/file.gesture"
+		- allow_mouse=true //Allows mouse click
+		- gestureCompleted="javascriptCallback()"
+		- gestureStarted="javascriptCallback()"

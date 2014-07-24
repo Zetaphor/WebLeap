@@ -1,0 +1,424 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="js/libs/jquery-1.8.3/jquery.min.js"></script>
+        <script type="text/javascript" src="js/libs/dollar/dollar.js"></script>
+        <script type="text/javascript" src="js/jquery.leapmotion.js"></script>
+        <script type="text/javascript" src="js/screenProperties.js"></script>
+        <script type="text/javascript" src="js/pointablesManager.js"></script>
+        <script type="text/javascript" src="js/reactors/collidable/collidable.js"></script>
+        <script type="text/javascript" src="js/reactors/collidable/collidableSection.js"></script>
+        <script type="text/javascript" src="js/reactors/collidable/collidableReactor.js"></script>
+        <script type="text/javascript" src="js/reactors/gesture/gestureReactor.js"></script>
+        <script type="text/javascript">
+            /******START DOLLAR GESTURE******/
+            var oldX;
+            var oldY;
+            var canvas;
+            var ctx;
+            var _r = new DollarRecognizer();
+            var _points = [];
+            var pointThreshold = 3; // Number of pixels required to be moved for a movement to count
+            var accuracyThreshold = 85; //Accuracy required to trigger an event
+            var mouseDown = false;
+            var pointableUpdate = null;
+            var recordGesture = false;
+
+            $(document).ready(function() {
+                canvas = document.getElementById("canvas");
+                ctx = canvas.getContext("2d");
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
+            $(document).mousedown(function(e) {
+                mouseDown = true;
+                e.preventDefault(); //Stop the normal click action, won't need this for pointable actions, just mouse
+                _points = [];
+                ctx.beginPath();
+                ctx.strokeStyle = "#bae1ff";
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.lineWidth = 6;
+                oldX = e.pageX;
+                oldY = e.pageY;
+            });
+
+            $(document).mousemove(function(e) {
+                if (!mouseDown)
+                    return;
+                if (oldX - e.pageX < pointThreshold && oldX - e.pageX > -pointThreshold)
+                    return;
+                if (oldY - e.pageY < pointThreshold && oldY - e.pageY > -pointThreshold)
+                    return;
+                if (oldX !== 0 && oldY !== 0)
+                    ctx.moveTo(oldX, oldY); //Browser bug? Sometimes these values reset
+                oldX = e.pageX;
+                oldY = e.pageY;
+                ctx.lineTo(oldX, oldY);
+                ctx.stroke();
+                _points[_points.length] = new Point(oldX, oldY);
+            });
+
+            $(document).mouseup(function(e) {
+                mouseDown = false;
+                ctx.closePath();
+                if (_points.length >= 10) {
+                    var result = _r.Recognize(_points);
+                    var accuracy = Math.round(result.Score * 100);
+                    if (accuracy >= accuracyThreshold) {
+                        $("#gestureShape").text("Gesture Recognition: " + result.Name);
+                        gestureEvent(result.Name);
+                    } else {
+                        $("#gestureShape").text("Accuracy not within acceptable limits, please try again.")
+                    }
+                    $("#gestureAccuracy").text("Accuracy: " + accuracy + "%");
+                }
+                _points = [];
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+
+            function gestureEvent(gestureName) {
+                console.log("Triggered Gesture: " + gestureName);
+            }
+
+            $(document).ready(function() {
+
+            });
+
+
+
+            /******END DOLLAR GESTURE******/
+        </script>
+        <style type="text/css">
+            #canvas {
+                position: absolute;
+                z-index: -1;
+            }
+
+
+        </style>
+
+        <script type="text/javascript">
+
+
+            //************BEGIN INIT CODE******************************
+            var output = null;
+            var pointTable = null;
+            var pointablesManager = null;
+            var collidableReactor = new CollidableReactor();
+            var gestureReactor = new GestureReactor();
+            $(document).ready(function() {
+                
+                //cache our output elements
+                output = $("#output");
+                pointTable = $("#pointsTable");
+
+                //set section div wrapper to the size of the document
+                $("#swrapper").height($(document).height());
+               
+                //give me a new screen properties object
+                screenProperties = new ScreenProperties();
+                
+                //getWindowProperties
+                populateWindowProperties();
+                $(window).on('resize', populateWindowProperties);
+
+                $(document).leap({
+                    socketUrl: "ws://localhost:6437/",
+                    success: onSuccess,
+                    rawData: onRawMessage,
+                    displayRaw: true});
+
+                initCollidables();
+
+
+                //this Move bind doesn't seem to work. We need to figure this out, 
+                //based on my research I think it's a browser limitation.
+                //We could loop every second and check the screenX and Y to see if we moved....
+                //For now I'm just going to move along.
+                //$(window).on('move', populateWindowProperties);
+                //EDIT: I implemented the loop
+                checkMove();
+            });
+
+            function onSuccess(event) {
+                $("#connection").html("WebSocket connection open!");
+                pointablesManager = new PointablesManager(screenProperties, [collidableReactor, gestureReactor]);
+            }
+            //************END INIT CODE******************************
+            //************BEGIN SCREEN CODE******************************
+            var oldX = window.screenX;
+            var oldY = window.screenY;
+
+            function checkMove() {
+                if (oldX != window.screenX || oldY != window.screenY) {
+                    screenProperties.initialize();
+                    screenProperties.debug();
+                    oldX = window.screenX;
+                    oldY = window.screenY;
+                    resetCollidables();
+                }
+                setTimeout(checkMove, 500);
+            }
+
+            var screenProperties = null;
+
+            //runs on resize and move of the window
+            function populateWindowProperties() {
+
+                screenProperties.initialize();
+                screenProperties.debug();
+
+            }
+
+            //************END SCREEN CODE***********************************
+
+
+            //**************BEGIN COLLIDABLE CODE***************************
+
+            function initCollidables() {
+                $("a").addClass("collidableElement");
+                $("#right").addClass("collidableElement");
+                collidableReactor.initializeSections();
+                resetCollidables();
+            }
+
+            function resetCollidables() {
+
+                collidableReactor.clearCollidables();
+
+                $(".collidableElement").each(function(index) {
+                    collidableReactor.addCollidable(new Collidable($(this)));
+                });
+
+
+                //DEBUG
+                var collidableTable = $("#collidablesDebug");
+                collidableTable.empty();
+                for (var i = 0; i < collidableReactor.masterCollidablesList.length; i++) {
+                    collidableTable.append("<tr><td>id:" + collidableReactor.masterCollidablesList[i].cachedElement.attr("id") + " width values:" + collidableReactor.masterCollidablesList[i].widthValues[0] + " to " + collidableReactor.masterCollidablesList[i].widthValues[1] + " Height Values:" + collidableReactor.masterCollidablesList[i].heightValues[0] + " to " + collidableReactor.masterCollidablesList[i].heightValues[1] + "</td></tr>");
+                }
+            }
+
+            //**************END COLLIDABLE CODE*****************************
+
+            //************BEGIN POINTABLE CODE******************************
+            var count = 0;
+            var loop = 0;
+            //parsing function to parse data to JSON
+            function onRawMessage(event) {
+                var obj = JSON.parse(event.data);
+                pointablesManager.processPointables(obj);
+            }
+
+            function logData(e) {
+                log(e.data);
+            }
+
+            function alertMessage(e) {
+                $("#message").html(e);
+            }
+
+            function log(e) {
+                $("#log").append(e + "<br />");
+            }
+
+        </script>
+        <style type="text/css">
+            html,body{margin: 0; padding: 0; width: 100%; height: 100%; }
+            #stop, .save {display: none;}
+            #log {color: blue}
+            div.pointable {
+                height: 50px;
+                width: 50px;
+                border: 1px solid black;
+                background: gainsboro;
+                border-radius: 25px;
+                position: absolute;
+                z-index:10;
+                opacity:0.4;
+                filter:alpha(opacity=40); /* For IE8 and earlier */
+            }
+
+            div.mainPoint{
+                background: black;
+            }
+
+            #xAxis {
+                z-index:10;
+                color: black;
+                position: fixed;
+                padding: 0;
+                margin: 0;
+                width:1px;
+                border-left: 1px solid black;
+                left: 50%;
+                top: 0px;
+                bottom:0px;
+            }
+
+            .colliding{
+                /*outline: 1px solid black;
+                background-color: yellow !important;*/
+
+            }
+
+            #linker2{
+                position: absolute;
+                top:400px;
+                left:400px;
+                width: 300px;
+            }
+            
+             #linker3{
+                position: absolute;
+                top:500px;
+                left:400px;
+            }
+            
+             #linker4{
+                position: absolute;
+                top:600px;
+                left:400px;
+            }
+
+            #right{
+                z-index: 0;
+                width: 150px;
+                background-color: blue;
+                top: 0px;
+                bottom:0px;
+                position:fixed;
+                right: 0px;
+            }
+            #swrapper{
+                position:absolute;
+                left:0px;
+                right:0px;
+                top:0px;
+            }
+            .s{
+                position:absolute;
+                left:0px;
+                right:0px;
+                opacity:0.4;
+                filter:alpha(opacity=40);
+            }
+            #s1{
+                background-color: red;
+                top:0%;
+                height:12.5%;
+            }
+            #s2{
+                background-color: green;
+                top:12.5%;
+                height:12.5%;
+            }
+            #s3{
+                background-color: blue;
+                top:25%;
+                height:12.5%;
+            }
+            #s4{
+                background-color: gray;
+                top:37.5%;
+                height:12.5%;
+            }
+            #s5{
+                background-color: magenta;
+                top:50%;
+                height:12.5%;
+            }
+            #s6{
+                background-color: lime;
+                top:62.5%;
+                height:12.5%;
+            }
+            #s7{
+                background-color: cyan;
+                top:75%;
+                height:12.5%;
+            }
+            #s8{
+                background-color: forestgreen;
+                top:87.5%;
+                height:12.5%;
+            }
+            
+            .cloned{
+                position: fixed;
+            }
+            
+            .selectorBox{
+                position: fixed;
+                border: 1px solid black;
+            }
+            
+            .selectorBox clicked{
+                background-color: yellow;
+            }
+            
+            .clonedElement{
+                visibility: hidden;
+            }
+           
+            .collidableElement {
+
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>        
+        <div id="swrapper">
+            <div id="s1" class="s">&nbsp;</div>
+            <div id="s2" class="s">&nbsp;</div>
+            <div id="s3" class="s">&nbsp;</div>
+            <div id="s4" class="s">&nbsp;</div>
+            <div id="s5" class="s">&nbsp;</div>
+            <div id="s6" class="s">&nbsp;</div>
+            <div id="s7" class="s">&nbsp;</div>
+            <div id="s8" class="s">&nbsp;</div>
+        </div>
+        <h1>Leap Motion Collision Tester v1.0</h1>
+
+        <div id="connection">WebSocket not connected</div>
+        <div id="xAxis"><a href="http://www.google.com/" width="300" id="linker2" >This one has none and is longer.</a>
+        
+        <a href="http://www.google.com/" class="click" id="linker3" >Click</a>
+        
+        <a href="http://www.google.com/" class="context" id="linker4" >Context</a>
+        
+        </div>
+        <div id="yAxis"></div>
+        Message
+        <div id="message">Test</div>
+        Log:
+        <div id="log"></div>
+        <p>Output</p>
+        <div id="output"></div>
+
+        <div id="dollarOutput">
+            <div id="gestureShape">Gesture Recognition: </div>
+            <div id="gestureAccuracy">Accuracy: 0%</div>
+        </div>        
+
+        Collidables Debug:
+        <table id="collidablesDebug"></table>
+
+        <table>
+            <tr> <td><a href="#" id="linker1" >linker1</a></td></tr>
+        </table>
+
+        <div id="right">
+            TEST!
+        </div>
+        <br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content<br />content
+    </body>
+</html>

@@ -1,0 +1,91 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="js/libs/jquery-1.8.3/jquery.min.js"></script>
+        <script type="text/javascript" src="js/jquery.leapmotion.js"></script>
+
+        <script type="text/javascript">
+
+            var recording = false;
+
+            $(document).ready(function() {
+                $(document).leap({
+                    success: onSuccess,
+                    rawData: onRawMessage,
+                    displayRaw: true});
+            });
+
+            function onSuccess(event) {
+                $("#connection").html("WebSocket connection open!");
+            }
+
+            function onRawMessage(event) {
+                if (recording) {
+                    $("#output").append(event.data + "|");
+                }
+                // var obj = JSON.parse(event.data);
+                //var str = JSON.stringify(obj, undefined, 2);
+                //document.getElementById("output").innerHTML = '<pre>' + str + '</pre>';
+            }
+
+            function startRecording() {
+                recording = true;
+                $("#start").hide();
+                $("#stop").show();
+                $(".save").show();
+            }
+
+            function stopRecording() {
+                recording = false;
+                $("#start").show();
+                $("#stop").hide();
+            }
+
+            function saveOutput() {
+                if ((typeof(WebSocket) == 'undefined') &&
+                        (typeof(MozWebSocket) != 'undefined')) {
+                    WebSocket = MozWebSocket;
+                }
+               var ws = new WebSocket("ws://localhost:8081/");
+                ws.onopen = function(event) {
+                    log("Node connection open. Sending output...");
+                    ws.send($("#title").val() + "$" + $("#output").html());
+                };
+                ws.onmessage = logData;
+            }
+            
+            function logData(e){
+                log(e.data);
+            }
+            
+            function log(e){
+                $("#log").append(e + "<br />");
+            }
+            
+        </script>
+        <style type="text/css">
+            #stop, .save {display: none;}
+            #log {color: blue}
+        </style>
+    </head>
+    <body>
+        <h1>Leap Motion Recorder v1.0</h1>
+        <a href="simulator.html">Simulator</a>
+        <div id="connection">WebSocket not connected</div>
+
+
+        <input type="button" id="start" value="Start Recording" onclick="startRecording();" />
+        <input type="button" id="stop" value="Stop Recording" onclick="stopRecording();" />
+        <input type="text" class="save" id="title" />
+        <input type="button" class="save" id="stop" value="Save Output" onclick="saveOutput();" />
+        <div id="log"></div>
+        <p>Raw Output "|" delimited:</p>
+        <div id="output"></div>
+    </body>
+</html>

@@ -1,0 +1,187 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="js/libs/jquery-1.8.3/jquery.min.js"></script>
+        <script type="text/javascript" src="js/jquery.leapmotion.js"></script>
+        <script type="text/javascript" src="js/screenProperties.js"></script>
+        <script type="text/javascript" src="js/pointablesManager.js"></script>
+
+        <script type="text/javascript">
+
+
+            //************BEGIN INIT CODE******************************
+            var output = null;
+            var pointTable = null;
+            var pointablesManager = null;
+            $(document).ready(function() {
+
+                //cache our output elements
+                output = $("#output");
+                pointTable = $("#pointsTable");
+
+                //give me a new screen properties object
+                screenProperties = new ScreenProperties();
+
+                //getWindowProperties
+                populateWindowProperties();
+                $(window).on('resize', populateWindowProperties);
+
+                $(document).leap({
+                    socketUrl: "ws://localhost:8082/",
+                    success: onSuccess,
+                    rawData: onRawMessage,
+                    displayRaw: true});
+
+                //this Move bind doesn't seem to work. We need to figure this out, 
+                //based on my research I think it's a browser limitation.
+                //We could loop every second and check the screenX and Y to see if we moved....
+                //For now I'm just going to move along.
+                //$(window).on('move', populateWindowProperties);
+                //EDIT: I implemented the loop
+                checkMove();
+            });
+
+            function onSuccess(event) {
+                $("#connection").html("WebSocket connection open!");
+                pointablesManager = new PointablesManager(screenProperties);
+            }
+            //************END INIT CODE******************************
+            //************BEGIN SCREEN CODE******************************
+            var oldX = window.screenX;
+            var oldY = window.screenY;
+            
+            function checkMove() {
+                if (oldX != window.screenX || oldY != window.screenY) {
+                    screenProperties.initialize();
+                    screenProperties.debug();
+                    oldX = window.screenX;
+                    oldY = window.screenY;
+                }
+                setTimeout(checkMove, 500);
+            }
+
+            var screenProperties = null;
+
+            //runs on resize and move of the window
+            function populateWindowProperties() {
+
+                screenProperties.initialize();
+                screenProperties.debug();
+
+            }
+
+            //************END SCREEN CODE******************************
+
+            //************BEGIN POINTABLE CODE******************************
+            var count = 0;
+            var loop = 0;
+            //parsing function to parse data to JSON
+            function onRawMessage(event) {
+                if (event.data == "EOF") {
+                    $("#sim_status").html("Status: Simulation completed");
+                    $("#sim_status").css({'color':'blue'});
+                } else {
+                    $("#sim_status").html("Status: Running simulation");
+                    $("#sim_status").css({'color':'green'});
+                    var obj = JSON.parse(event.data);
+                    //DEBUG OUTPUT
+                    var str = JSON.stringify(obj, undefined, 2);
+                    output.html('<pre>' + str + '</pre>');
+                    pointTable.empty();
+                    processPointables(obj.pointables);
+                    //END DEBUG CODE
+                    pointablesManager.processPointables(obj.pointables);                    
+                }
+            }
+
+            //debug function to output pointable stuff    
+            function processPointables(pointables) {
+                //loop through our pointables
+                if (typeof(pointables) != "undefined") {
+                    for (var i = 0; i < pointables.length; i++) {
+                        pointTable.append("<tr><td>x:" + pointables[i].tipPosition[0] + " y:" + pointables[i].tipPosition[1] + " z:" + pointables[i].tipPosition[2] + "</td></tr>");
+                    }
+                }
+                ;
+            }
+            function logData(e) {
+                log(e.data);
+            }
+
+            function logOne(e) {
+                $("#logOne").html(e);
+            }
+
+            function log(e) {
+                $("#log").append(e + "<br />");
+            }
+
+        </script>
+        <style type="text/css">
+            html,body{margin: 0; padding: 0; width: 100%; }
+            #stop, .save {display: none;}
+            #log {color: blue}
+            div.pointable {
+                height: 50px;
+                width: 50px;
+                border: 1px solid black;
+                background: gainsboro;
+                border-radius: 25px;
+                position: absolute;
+            }
+            
+            div.mainPoint{
+                background: black;
+            }
+            
+            #xAxis {
+                color: black;
+                position: fixed;
+                padding: 0;
+                margin: 0;
+                width:1px;
+                border-left: 1px solid black;
+                left: 50%;
+                top: 0px;
+                bottom:0px;
+            }
+            
+            #sim_status {
+                color: red;
+            }
+            
+        </style>
+    </head>
+    <body>
+        <h1>Leap Motion Detector v1.0</h1>
+        
+        <div id="connection">WebSocket not connected</div>
+        <table border="1" id="windowInfo">
+            <tr><td>Screen W:<span id="screenw"></span> </td></tr>
+            <tr><td>Screen H:<span id="screenh"></span></td></tr>
+            <tr><td>Screen X:<span id="screenx"></span> </td></tr>
+            <tr><td>Screen Y:<span id="screeny"></span></td></tr>
+            <tr><td>Window W:<span id="windoww"></span></td></tr>
+            <tr><td>Window H:<span id="windowh"></span></td></tr>
+            <tr><td>Outer W:<span id="windowOuterw"></span></td></tr>
+            <tr><td>Outer H:<span id="windowOuterh"></span></td></tr>
+        </table>
+        <div id="sim_status">Status: Not receiving data</div>        
+        <table border="1" id="pointsTable">
+
+        </table>
+
+        <div id="xAxis"></div>
+        <div id="yAxis"></div>
+        <div id="logOne"></div>
+        <div id="log"></div>
+        <p>JSON Output</p>
+        <div id="output"></div>
+    </body>
+</html>

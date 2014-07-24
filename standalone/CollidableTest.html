@@ -1,0 +1,107 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+                <script type="text/javascript" src="js/libs/jquery-1.8.3/jquery.min.js"></script>
+        <script type="text/javascript" src="js/collidable.js"></script>
+        <script type="text/javascript">
+            var overlaps = (function() {
+                
+                return function(a, b) {
+                    var c1 = new Collidable($(a));
+                    var c2 = new Collidable($(b));
+                    return c1.isColliding(c2);
+                };
+            })();
+
+            $(function() {
+                var area = $('#area')[0],
+                        box = $('#box0')[0],
+                        html;
+
+                html = $(area).children().not(box).map(function(i) {
+                    return '<p>Red box + Box ' + (i + 1) + ' = ' + overlaps(box, this) + '</p>';
+                }).get().join('');
+
+                $('body').append(html);
+            });
+
+        </script>
+        <style type="text/css">
+            body {
+                padding: 30px;
+                color: #444;
+                font-family: Arial, sans-serif;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+
+            #area {
+                border: 2px solid gray;
+                width: 500px;
+                height: 400px;
+                position: relative;
+            }
+
+            #area > div {
+                background-color: rgba(122, 122, 122, 0.3);
+                position: absolute;
+                text-align: center;
+                font-size: 50px;
+                width: 60px;
+                height: 60px;
+            }
+
+            #box0 {
+                background-color: rgba(255, 0, 0, 0.5) !important;
+                top: 150px;
+                left: 150px;
+            }
+
+            #box1 {
+                top: 260px;
+                left: 50px;
+            }
+
+            #box2 {
+                top: 110px;
+                left: 160px;
+            }
+
+            #box3 {
+                top: 200px;
+                left: 200px;
+            }
+
+            #box4 {
+                top: 50px;
+                left: 400px;
+            }
+
+            p {
+                margin: 5px 0;
+            }
+        </style>
+    </head>
+    <body>
+
+
+        <h1>Detect overlapping with JavaScript</h1>
+        <div id="area">
+            <div id="box0"></div>
+            <div id="box1">1</div>
+            <div id="box2">2</div>
+            <div id="box3">3</div>
+            <div id="box4">4</div>
+        </div>
+
+    </body>
+</html>

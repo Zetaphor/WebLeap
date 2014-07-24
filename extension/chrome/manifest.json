@@ -1,0 +1,38 @@
+{
+    "name": "WebLeap",
+    "version": "0.1",
+    "description": "Browser gesture control using the Leap Motion.",
+    "homepage_url": "http://zetaphor.net",
+    "manifest_version": 2,
+    
+    "permissions": ["tabs", "<all_urls>"],      
+    
+    "icons": {
+        "16": "icon/icon16.png",
+        "48": "icon/icon48.png",
+        "128": "icon/icon128.png"
+    },    
+
+    "browser_action":	{
+            "default_title": "WebLeap",
+            "default_popup": "src/popup.html",
+            "default_icon": "icon/icon128_disabled.png"
+    },
+    
+    "background": {
+      "scripts": ["js/background.js"]
+    },
+            
+    "content_scripts": [{
+      "matches": ["http://zetaphor.net/webleap/*"],
+      "css": ["css/webleap.css"],
+      "js": [
+          "lib/jquery1.8.3/jquery.min.js",
+          "lib/webleap/pointablesManager.js",
+          "lib/webleap/screenProperties.js",
+          "lib/webleap/webleap.js"          
+        ]
+    }]
+    
+    
+}

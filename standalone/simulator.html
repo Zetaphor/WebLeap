@@ -1,0 +1,80 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="js/libs/jquery-1.8.3/jquery.min.js"></script>
+        <script type="text/javascript" src="js/jquery.leapmotion.js"></script>
+
+        <script type="text/javascript">
+
+            var ws = null;
+            $(document).ready(function() {
+                if ((typeof(WebSocket) == 'undefined') &&
+                        (typeof(MozWebSocket) != 'undefined')) {
+                    WebSocket = MozWebSocket;
+                }
+                ws = new WebSocket("ws://localhost:8082/");
+                ws.onopen = function(event) {
+                    log("Socket open.");
+                    
+
+                };
+                ws.onmessage = populateTable;
+                
+            });
+
+            function populateTable(event){
+                var files = event.data.split("|");
+                    for (var i = 0; i < files.length; i++) {
+                        $("#fileTable").append("<tr><td>" +files[i]
+                                + "</td><td><input type=\"button\" onclick=\"sendFile('" + files[i] + "')\" value=\"Send Motion\" /></td></tr>");
+                    }
+                ws.onmessage = showJson;
+            }
+
+            function sendFile(fileName) {
+                log("sending file:" + fileName);
+                ws.send(fileName);
+            }
+
+            function showJson(event) {
+                try{
+                var obj = JSON.parse(event.data);
+                var str = JSON.stringify(obj, undefined, 2);
+                $("#output").html('<pre>' + str + '</pre>');
+                }catch(e){
+                    
+                }
+            }
+
+            function logData(e) {
+                log(e.data);
+            }
+
+            function log(e) {
+                $("#log").append(e + "<br />");
+            }
+
+        </script>
+        <style type="text/css">
+            #stop, .save {display: none;}
+            #log {color: blue}
+        </style>
+    </head>
+    <body>
+        <h1>Leap Motion Simulator v1.0</h1>
+        <a href="recorder.html">Recorder</a>
+        <div id="log"></div>
+        <table id="fileTable">
+            <tr><th>File Name</th><th></th></tr>
+        </table>
+
+        <p>Json Leap Simulated Output:</p>
+        <div id="output"></div>
+    </body>
+</html>
