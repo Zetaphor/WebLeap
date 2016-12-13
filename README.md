@@ -6,6 +6,3 @@ A Chrome extension and jQuery plugin that allows you to navigate the web using t
 
 Includes a NodeJS server to record and playback data streams for hardware emulation.
 
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/Zetaphor/webleap/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
